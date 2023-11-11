@@ -1,0 +1,33 @@
+# 2023-10-11
+
+1. 框架说明：
+多移动机器人Gazebo仿真平台软件包括
+    （1）gazebo_swarm_robot_tb3
+        多机器人仿真平台启动+多机器人运动驱动
+    （2）turtlebot3_description
+        turtlebot3仿真模型
+    （3）gazebo_ros
+        Gazebo平台启动包
+
+
+2. 使用步骤
+Step 1 打开多机器人Gazebo仿真平台
+    roslaunch gazebo_swarm_robot_tb3 gazebo_swarm_robot_5.launch
+
+Step 2 运行多移动机器人运动控制程序
+    1) 角度一致性实验
+      rosrun gazebo_swarm_robot_tb3 gazebo_swarm_robot_control_angle
+        示例代码功能为角度一致性
+
+Step 3 停止小车
+    rosrun gazebo_swarm_robot_tb3 gazebo_stop_robot
+
+
+3. 其他
+    (1)Ubuntu终端停止程序操作：按键“Ctrl+C”即可；若无法停止，可采取按键“Ctrl+Z”和按键“Ctrl+D”组合使用。
+
+
+
+# 2023-10-11
+在gazebo环境中完成仿真实验后，可以直接将main.cpp文件作为实验的源文件调试，所有的函数接口均已封装
+本代码在Ubuntu 16.04, 18.04, 20.04测试通过，如有问题请联系助教
