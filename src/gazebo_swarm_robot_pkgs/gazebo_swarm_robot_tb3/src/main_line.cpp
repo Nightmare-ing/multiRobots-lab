@@ -17,21 +17,16 @@ namespace config {
     double MIN_W = 0.05;    // Minimum angle velocity(rad/s)
     double MAX_V = 0.2;     // Maximum linear velocity(m/s)
     double MIN_V = 0.01;    // Minimum linear velocity(m/s)
-<<<<<<< HEAD
-    double k_w = 0.1;       // Scale of angle velocity
-    double k_v = 0.1;       // Scale of linear velocity
-=======
-    double k_w = 0.5;       // Scale of angle velocity
-    double k_v = 10;        // Scale of linear velocity
+    double k_w = 0.2;       // Scale of angle velocity
+    double k_v = 8;        // Scale of linear velocity
 
     /**
      * @brief several params for avoiding collision
      * Avoiding strategy: imitate gravity but using rejection not attraction
      */
-    double MIN_dist = 0.5;  // minimun distance between robots to avoid moving far awary
-    double force_coef = 1;  // coefficient to replace G etc. in gravity formula
+    double MIN_dist = 1.5;  // minimun distance between robots to avoid moving far awary
+    double force_coef = 0.8;  // coefficient to replace G etc. in gravity formula
     double w_coef = 0.04;   // scale the impact of rejection on w
->>>>>>> dynamic-line
     
 }
 
@@ -52,14 +47,10 @@ int main(int argc, char** argv) {
     SwarmRobot swarm_robot(&nh, swarm_robot_id);
 
     /* Set L Matrix and the converge line */
-<<<<<<< HEAD
-    Eigen::MatrixXd lap(swarm_robot_id.size(), swarm_robot_id.size());
-=======
     Eigen::VectorXd line(2); // line function
     line << 1, 1;
 
     Eigen::MatrixXd lap(num_robots, num_robots);
->>>>>>> dynamic-line
     lap <<  4, -1, -1, -1, -1, 
             -1, 4, -1, -1, -1,
             -1, -1, 4, -1, -1,
@@ -82,6 +73,9 @@ int main(int argc, char** argv) {
     Eigen::VectorXd dist_factor(num_robots);
     Eigen::VectorXd force_x(num_robots);
     Eigen::VectorXd force_y(num_robots);
+    Eigen::VectorXd cos_theta(num_robots);
+    Eigen::VectorXd sin_theta(num_robots);
+    Eigen::VectorXd consist_item(num_robots);
 
     /* store position from camera */
     std::vector<std::vector<double> > current_robot_pose(num_robots);
@@ -149,8 +143,9 @@ int main(int argc, char** argv) {
             w += del_w;
             
             // print Info for debug
-            // std::cout << "num: " << i << std::endl << "vec: " << vec << std::endl << "w: " << w << std::endl;
-            // std::cout << "del_vec: " << del_vec << std::endl << "del_w: " << del_w << std::endl;
+            std::cout << "num: " << i << std::endl << "vec: " << vec << std::endl << "w: " << w << std::endl;
+            std::cout << "del_vec: " << del_vec << std::endl << "del_w: " << del_w << std::endl;
+            std::cout << "dist_factor: " << dist_factor(i) << std::endl;
             
             // add consistant connection affect
             vec /= dist_factor(i);
