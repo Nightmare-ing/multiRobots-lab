@@ -18,7 +18,15 @@ namespace config {
     double MAX_V = 0.2;     // Maximum linear velocity(m/s)
     double MIN_V = 0.01;    // Minimum linear velocity(m/s)
     double k_w = 0.5;       // Scale of angle velocity
-    double k_v = 0.01;       // Scale of linear velocity
+    double k_v = 10;        // Scale of linear velocity
+
+    /**
+     * @brief several params for avoiding collision
+     * Avoiding strategy: imitate gravity but using rejection not attraction
+     */
+    double MIN_dist = 0.5;  // minimun distance between robots to avoid moving far awary
+    double force_coef = 1;  // coefficient to replace G etc. in gravity formula
+    double w_coef = 0.04;   // scale the impact of rejection on w
     
 }
 
@@ -34,6 +42,7 @@ int main(int argc, char** argv) {
     
     /* First: Set ids of swarm robot based on Aruco marker */
     std::vector<int> swarm_robot_id{1, 2, 3, 4, 5};
+    int num_robots = swarm_robot_id.size();
 
     /* Initialize swarm robot */
     SwarmRobot swarm_robot(&nh, swarm_robot_id);
@@ -42,13 +51,13 @@ int main(int argc, char** argv) {
     Eigen::VectorXd line(2); // line function
     line << 1, 1;
 
-    Eigen::MatrixXd lap(swarm_robot_id.size(), swarm_robot_id.size());
+    Eigen::MatrixXd lap(num_robots, num_robots);
     lap <<  4, -1, -1, -1, -1, 
             -1, 4, -1, -1, -1,
             -1, -1, 4, -1, -1,
             -1, -1, -1, 4, -1,
             -1, -1, -1, -1, 4;
-    // Eigen::MatrixXd lap1(swarm_robot_id.size(), swarm_robot_id.size());
+    // Eigen::MatrixXd lap1(num_robots, num_robots);
     // lap <<  1, -1, 0, 0, 0,
     //         -1, 3, -1, 0, -1,
     //         0, -1, 3, -1, -1,
@@ -57,13 +66,16 @@ int main(int argc, char** argv) {
 
 
     /* Mobile robot poses and for next poses */
-    Eigen::MatrixXd cur_pos(swarm_robot_id.size(), 3);
-    Eigen::MatrixXd del_pos(swarm_robot_id.size(), 3);
-    Eigen::VectorXd del_consist_item(swarm_robot_id.size());
-    Eigen::VectorXd del_theta(swarm_robot_id.size());
+    Eigen::MatrixXd cur_pos(num_robots, 3);
+    Eigen::MatrixXd del_pos(num_robots, 3);
+    Eigen::VectorXd del_consist_item(num_robots);
+    Eigen::VectorXd del_theta(num_robots);
+    Eigen::VectorXd dist_factor(num_robots);
+    Eigen::VectorXd force_x(num_robots);
+    Eigen::VectorXd force_y(num_robots);
 
     /* store position from camera */
-    std::vector<std::vector<double> > current_robot_pose(swarm_robot_id.size());
+    std::vector<std::vector<double> > current_robot_pose(num_robots);
 
     /* Convergence sign */
     bool is_conv = false;   
@@ -89,10 +101,46 @@ int main(int argc, char** argv) {
             break;
         }
 
+        // compute force on each robot & distance coefficient
+        for (int i = 0; i < num_robots; ++i) {
+            force_x(i) = 0;
+            force_y(i) = 0;
+            dist_factor(i) = 0;
+            for (int j = 0; j < num_robots; ++j) {
+                if (i == j) continue;
+                double radius = sqrt(pow(cur_pos(i, 0) - cur_pos(j, 0), 2) + pow(cur_pos(i, 1) - cur_pos(j, 1), 2));
+                force_x(i) += config::force_coef 
+                                     / radius / radius
+                                     * (cur_pos(i, 0) - cur_pos(j, 0))
+                                     / radius;
+                force_y(i) += config::force_coef 
+                                     / radius / radius
+                                     * (cur_pos(i, 1) - cur_pos(j, 1))
+                                     / radius;
+                dist_factor(i) += pow(sqrt(pow(cur_pos(i, 0) - cur_pos(j, 0), 2) + pow(cur_pos(i, 1) - cur_pos(j, 1), 2)) -
+                                    config::MIN_dist, 2);
+            }
+        }
+
         /* Swarm robot move */
-        for (int i = 0; i < swarm_robot_id.size(); ++i) {
+        for (int i = 0; i < num_robots; ++i) {
             double vec = (del_consist_item(i)) * config::k_v;
             double w = del_theta(i) * config::k_w;
+
+            // add rejection effect on vec and w
+            double del_vec = force_x(i) * std::cos(cur_pos(i, 2)) + force_y(i) * std::sin(cur_pos(i, 2));
+            vec += del_vec;
+            double del_w = config::w_coef * (force_x(i) * std::sin(cur_pos(i, 2)) + force_y(i) * std::cos(cur_pos(i, 2)));
+            w += del_w;
+            
+            // print Info for debug
+            // std::cout << "num: " << i << std::endl << "vec: " << vec << std::endl << "w: " << w << std::endl;
+            // std::cout << "del_vec: " << del_vec << std::endl << "del_w: " << del_w << std::endl;
+            
+            // add consistant connection affect
+            vec /= dist_factor(i);
+            
+            // addjust vec and w to appropriate range
             vec = swarm_robot.checkVel(vec, config::MAX_V, config::MIN_V);
             w = swarm_robot.checkVel(w, config::MAX_W, config::MIN_W);
 
