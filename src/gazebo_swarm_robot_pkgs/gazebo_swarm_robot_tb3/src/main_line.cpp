@@ -17,9 +17,11 @@ namespace config {
     double MIN_W = 0.05;    // Minimum angle velocity(rad/s)
     double MAX_V = 0.2;     // Maximum linear velocity(m/s)
     double MIN_V = 0.01;    // Minimum linear velocity(m/s)
-    double k_w = 0.005;       // Scale of angle velocity
-    double k_v = 2; //0.01;       // Scale of linear velocity
+    double k_w = 0.5;       // Scale of angle velocity
+    double k_v = 10; //0.01;       // Scale of linear velocity
     double MIN_dist = 0.5;   // minimun distance between robots to avoid collision
+    double force_coef = 1;
+    double w_coef = 0.04;
     
 }
 
@@ -64,6 +66,8 @@ int main(int argc, char** argv) {
     Eigen::VectorXd del_consist_item(num_robots);
     Eigen::VectorXd del_theta(num_robots);
     Eigen::VectorXd sum_dist_factor(num_robots);
+    Eigen::VectorXd force_radius_x(num_robots);
+    Eigen::VectorXd force_radius_y(num_robots);
 
     /* store position from camera */
     std::vector<std::vector<double> > current_robot_pose(num_robots);
@@ -83,7 +87,6 @@ int main(int argc, char** argv) {
         del_pos = -lap * cur_pos;
         del_consist_item = del_pos.block(0, 0, del_pos.rows(), 2) * line;
         del_theta = del_pos.col(2);
-        
         
         for (int i = 0; i < num_robots; ++i) {
             for (int j = 0; j < num_robots; ++j) {
@@ -106,8 +109,35 @@ int main(int argc, char** argv) {
 
         /* Swarm robot move */
         for (int i = 0; i < num_robots; ++i) {
-            double vec = (del_consist_item(i)) * config::k_v / sum_dist_factor(i);
-            double w = del_theta(i) * config::k_w * sum_dist_factor(i);
+            double vec = (del_consist_item(i)) * config::k_v;
+            double w = del_theta(i) * config::k_w;
+            
+            force_radius_x(i) = 0;
+            force_radius_y(i) = 0;
+            for (int j = 0; j < num_robots; ++j) {
+                if (i == j) continue;
+                double radius = sqrt(pow(cur_pos(i, 0) - cur_pos(j, 0), 2) + pow(cur_pos(i, 1) - cur_pos(j, 1), 2));
+                force_radius_x(i) += config::force_coef 
+                                     / radius / radius
+                                     * (cur_pos(i, 0) - cur_pos(j, 0))
+                                     / radius;
+                force_radius_y(i) += config::force_coef 
+                                     / radius / radius
+                                     * (cur_pos(i, 1) - cur_pos(j, 1))
+                                     / radius;
+            }
+
+
+            
+            double del_vec = force_radius_x(i) * std::cos(cur_pos(i, 2)) + force_radius_y(i) * std::sin(cur_pos(i, 2));
+            vec += del_vec;
+            double del_w = config::w_coef * (force_radius_x(i) * std::sin(cur_pos(i, 2)) + force_radius_y(i) * std::cos(cur_pos(i, 2)));
+            w += del_w;
+            
+            std::cout << "num: " << i << std::endl << "vec: " << vec << std::endl << "w: " << w << std::endl;
+            std::cout << "del_vec: " << del_vec << std::endl << "del_w: " << del_w << std::endl;
+            
+            vec /= sum_dist_factor(i);
             vec = swarm_robot.checkVel(vec, config::MAX_V, config::MIN_V);
             w = swarm_robot.checkVel(w, config::MAX_W, config::MIN_W);
 
