@@ -18,15 +18,16 @@ namespace config {
     double MAX_V = 0.2;     // Maximum linear velocity(m/s)
     double MIN_V = 0.01;    // Minimum linear velocity(m/s)
     double k_w = 0.5;       // Scale of angle velocity
-    double k_v = 10;        // Scale of linear velocity
+    double k_v = 0.5;        // Scale of linear velocity
 
     /**
      * @brief several params for avoiding collision
      * Avoiding strategy: imitate gravity but using rejection not attraction
      */
-    double MIN_dist = 0.5;  // minimun distance between robots to avoid moving far awary
-    double force_coef = 1;  // coefficient to replace G etc. in gravity formula
-    double w_coef = 0.04;   // scale the impact of rejection on w
+    double MIN_dist = 1.5;  // minimun distance between robots to avoid moving far awary
+    double MIN_dist_coef = 0.1;
+    double force_coef = 0.08;  // coefficient to replace G etc. in gravity formula
+    double w_coef = 0.03;   // scale the impact of rejection on w
     
 }
 
@@ -134,11 +135,11 @@ int main(int argc, char** argv) {
             w += del_w;
             
             // print Info for debug
-            // std::cout << "num: " << i << std::endl << "vec: " << vec << std::endl << "w: " << w << std::endl;
-            // std::cout << "del_vec: " << del_vec << std::endl << "del_w: " << del_w << std::endl;
+            std::cout << "num: " << i << std::endl << "vec: " << vec << std::endl << "w: " << w << std::endl;
+            std::cout << "del_vec: " << del_vec << std::endl << "del_w: " << del_w << std::endl;
             
             // add consistant connection affect
-            vec /= dist_factor(i);
+            vec /= dist_factor(i) * config::MIN_dist_coef;
             
             // addjust vec and w to appropriate range
             vec = swarm_robot.checkVel(vec, config::MAX_V, config::MIN_V);
