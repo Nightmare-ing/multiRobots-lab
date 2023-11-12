@@ -17,15 +17,14 @@ namespace config {
     double MIN_W = 0.05;    // Minimum angle velocity(rad/s)
     double MAX_V = 0.2;     // Maximum linear velocity(m/s)
     double MIN_V = 0.01;    // Minimum linear velocity(m/s)
-    double k_w = 0.5;       // Scale of angle velocity
-    double k_v = 0.01;       // Scale of linear velocity
+    double k_w = 0.1;       // Scale of angle velocity
+    double k_v = 0.1;       // Scale of linear velocity
     
 }
 
-// Util functions
+// util functions
 void copy_to_matrix(std::vector<std::vector<double> >& vec, Eigen::MatrixXd& mat);
 bool all_converge(Eigen::VectorXd& vec);
-
 
 /* Main function */
 int main(int argc, char** argv) {
@@ -39,9 +38,6 @@ int main(int argc, char** argv) {
     SwarmRobot swarm_robot(&nh, swarm_robot_id);
 
     /* Set L Matrix and the converge line */
-    Eigen::VectorXd line(2); // line function
-    line << 1, 1;
-
     Eigen::MatrixXd lap(swarm_robot_id.size(), swarm_robot_id.size());
     lap <<  4, -1, -1, -1, -1, 
             -1, 4, -1, -1, -1,
@@ -56,11 +52,15 @@ int main(int argc, char** argv) {
     //         0, -1, -1, -1, 3;
 
 
+
     /* Mobile robot poses and for next poses */
     Eigen::MatrixXd cur_pos(swarm_robot_id.size(), 3);
     Eigen::MatrixXd del_pos(swarm_robot_id.size(), 3);
     Eigen::VectorXd del_consist_item(swarm_robot_id.size());
     Eigen::VectorXd del_theta(swarm_robot_id.size());
+    Eigen::VectorXd cos_theta(swarm_robot_id.size());
+    Eigen::VectorXd sin_theta(swarm_robot_id.size());
+    Eigen::VectorXd consist_item(swarm_robot_id.size());
 
     /* store position from camera */
     std::vector<std::vector<double> > current_robot_pose(swarm_robot_id.size());
@@ -72,15 +72,21 @@ int main(int argc, char** argv) {
     while(! is_conv) {
         /* Get current swarm robot poses */
         swarm_robot.getRobotPose(current_robot_pose);
-        
+
         // copy robot positions to matrix for matrix operation
         copy_to_matrix(current_robot_pose, cur_pos);
 
         /* Judge whether reached */
         del_pos = -lap * cur_pos;
-        del_consist_item = del_pos.block(0, 0, del_pos.rows(), 2) * line;
         del_theta = del_pos.col(2);
-        
+
+        cos_theta = (cur_pos.block(0, 2, del_pos.rows(), 1)).array().cos();
+        sin_theta = (cur_pos.block(0, 2, del_pos.rows(), 1)).array().sin();
+        // x * cos_theta + y * sin_theta
+        consist_item = cur_pos.block(0, 0, del_pos.rows(), 1).array() * cos_theta.array() + cur_pos.block(0, 1, del_pos.rows(), 1).array() * sin_theta.array();
+        del_consist_item = -lap * consist_item;
+
+
         bool angle_conv = all_converge(del_theta);
         bool pos_conv = all_converge(del_consist_item);
         is_conv = pos_conv && angle_conv;
@@ -93,6 +99,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i < swarm_robot_id.size(); ++i) {
             double vec = (del_consist_item(i)) * config::k_v;
             double w = del_theta(i) * config::k_w;
+
             vec = swarm_robot.checkVel(vec, config::MAX_V, config::MIN_V);
             w = swarm_robot.checkVel(w, config::MAX_W, config::MIN_W);
 
