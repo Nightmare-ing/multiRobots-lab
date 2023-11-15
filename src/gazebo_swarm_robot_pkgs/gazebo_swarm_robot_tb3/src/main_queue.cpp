@@ -15,6 +15,8 @@ void copy_to_matrix(std::vector<std::vector<double> >& vec, Eigen::MatrixXd& mat
 bool all_converge(Eigen::VectorXd& vec);
 bool all_converge(Eigen::MatrixXd& mat);
 void generate_pos(const string& expected_queue, Eigen::MatrixXd& expected_pos);
+void generate_gd(Eigen::VectorXd& gd, const Eigen::MatrixXd& pos);
+void generate_Rg(Eigen::MatrixXd& Rg, const Eigen::VectorXd& pos);
 
 namespace config {
     /* Convergence threshold */
@@ -26,7 +28,7 @@ namespace config {
     double MAX_V = 0.2;     // Maximum linear velocity(m/s)
     double MIN_V = 0.01;    // Minimum linear velocity(m/s)
     double k_w = 0.8;       // Scale of angle velocity
-    double k_v = 0.1;        // Scale of linear velocity
+    double k_v = 1;        // Scale of linear velocity
 
     /**
      * @brief several params for avoiding collision
@@ -60,14 +62,10 @@ int main(int argc, char** argv) {
     
     Eigen::MatrixXd expected_pos(num_robots, 3);
     generate_pos(config::expected_queue, expected_pos);
-    Eigen::MatrixXd op_mat(num_robots, num_robots);
-    op_mat << 1, -1, 0, 0, 0,
-              0, 1, -1, 0, 0,
-              0, 0, 1, -1, 0,
-              0, 0, 0, 1, -1,
-              -1, 0, 0, 0, 1;
-    Eigen::MatrixXd exp_vector = op_mat * expected_pos;
-    std::cout << exp_vector << std::endl;
+    Eigen::VectorXd expected_gd(2 * num_robots - 3);
+    generate_gd(expected_gd, expected_pos);
+    std::cout << expected_gd << std::endl;
+
 
     Eigen::MatrixXd lap(num_robots, num_robots);
     lap <<  4, -1, -1, -1, -1, 
@@ -87,13 +85,15 @@ int main(int argc, char** argv) {
     Eigen::MatrixXd cur_pos(num_robots, 3);
     Eigen::MatrixXd cur_vector(num_robots, 3);
     Eigen::MatrixXd diff_vector(num_robots, 3);
-    Eigen::MatrixXd del_diff_vector(num_robots, 3);
+    Eigen::VectorXd del_pos_x(num_robots);
+    Eigen::VectorXd del_pos_y(num_robots);
     Eigen::VectorXd del_theta(num_robots);
     Eigen::VectorXd dist_factor(num_robots);
     Eigen::VectorXd force_x(num_robots);
     Eigen::VectorXd force_y(num_robots);
-    Eigen::VectorXd vec_array(num_robots);
-    Eigen::VectorXd w_array(num_robots);
+    Eigen::VectorXd cur_gd(2 * num_robots - 3);
+    Eigen::MatrixXd R_g_x(2 * num_robots - 3, num_robots);
+    Eigen::MatrixXd R_g_y(2 * num_robots - 3, num_robots);
 
 
     /* store position from camera */
@@ -109,15 +109,20 @@ int main(int argc, char** argv) {
         
         // copy robot positions to matrix for matrix operation
         copy_to_matrix(current_robot_pose, cur_pos);
-        cur_vector = op_mat * cur_pos;
-        std::cout << cur_vector << std::endl;
-        diff_vector = exp_vector - cur_vector;
+        generate_gd(cur_gd, cur_pos);
+        
+        generate_Rg(R_g_x, cur_pos.col(0));
+        generate_Rg(R_g_y, cur_pos.col(1));
+        std::cout << R_g_x << std::endl << R_g_y << std::endl;
 
         /* Judge whether reached */
-        del_diff_vector = -lap * diff_vector;
+        del_pos_x = R_g_x.transpose() * (expected_gd - cur_gd);
+        del_pos_y = R_g_y.transpose() * (expected_gd - cur_gd);
+        std::cout << del_pos_x << std::endl << del_pos_y << std::endl;
         
-        bool pos_conv = all_converge(del_diff_vector);
-        is_conv = pos_conv;
+        bool x_conv = all_converge(del_pos_x);
+        bool y_conv = all_converge(del_pos_y);
+        is_conv = x_conv && y_conv;
 
         if (is_conv) {
             break;
@@ -146,11 +151,11 @@ int main(int argc, char** argv) {
 
         /* Swarm robot move */
         for (int i = 0; i < num_robots; ++i) {
-            double vec = (del_diff_vector(i, 0) * std::cos(cur_pos(i, 2)) + del_diff_vector(i, 1) * std::sin(cur_pos(i, 2))) * config::k_v;
-            double w = (-del_diff_vector(i, 0) * std::sin(cur_pos(i, 2)) + del_diff_vector(i, 1) * std::cos(cur_pos(i, 2))) * config::k_w;
-            // vec((i + 1) % num_robots) -= (del_diff_vector(i, 0) * std::sin(cur_pos((i+1)%num_robots, 2)) + del_diff_vector(i, 1) * std::cos(cur_pos((i+1)%num_robots, 2))) * config::k_v;
+            double vec = (del_pos_x(i) * std::cos(cur_pos(i, 2)) + del_pos_y(i) * std::sin(cur_pos(i, 2))) * config::k_v;
+            double w =  (del_pos_x(i) * std::sin(cur_pos(i, 2)) + del_pos_y(i) * std::cos(cur_pos(i, 2)))* config::k_w;
 
             std::cout << "vec: " << vec << std::endl << "w: " << w << std::endl;
+
             // add rejection effect on vec and w
             double del_vec = force_x(i) * std::cos(cur_pos(i, 2)) + force_y(i) * std::sin(cur_pos(i, 2));
             vec += del_vec;
@@ -158,12 +163,12 @@ int main(int argc, char** argv) {
             w += del_w;
             
             // print Info for debug
-            std::cout << "num: " << i << std::endl << "vec: " << vec << std::endl << "w: " << w << std::endl;
-            std::cout << "del_vec: " << del_vec << std::endl << "del_w: " << del_w << std::endl;
+            // std::cout << "num: " << i << std::endl << "vec: " << vec << std::endl << "w: " << w << std::endl;
+            // std::cout << "del_vec: " << del_vec << std::endl << "del_w: " << del_w << std::endl;
             
             // add consistant connection affect
             vec /= dist_factor(i) * config::MIN_dist_coef;
-            std::cout << "dist_factor(i): " << dist_factor(i) << std::endl << "vec: " << vec << std::endl;
+            // std::cout << "dist_factor(i): " << dist_factor(i) << std::endl << "vec: " << vec << std::endl;
             
             // addjust vec and w to appropriate range
             vec = swarm_robot.checkVel(vec, config::MAX_V, config::MIN_V);
@@ -221,4 +226,23 @@ void generate_pos(const string& expected_queue, Eigen::MatrixXd& expected_pos) {
     if (expected_queue == "wedge") {
         return;
     }
+}
+
+void generate_gd(Eigen::VectorXd& gd, const Eigen::MatrixXd& pos) {
+    gd << pow(pos(0, 0) - pos(1, 0), 2) + pow(pos(0, 1) - pos(1, 1), 2),
+          pow(pos(0, 0) - pos(2, 0), 2) + pow(pos(0, 1) - pos(2, 1), 2),
+          pow(pos(0, 0) - pos(3, 0), 2) + pow(pos(0, 1) - pos(3, 1), 2),
+          pow(pos(0, 0) - pos(4, 0), 2) + pow(pos(0, 1) - pos(4, 1), 2),
+          pow(pos(1, 0) - pos(2, 0), 2) + pow(pos(1, 1) - pos(2, 1), 2),
+          pow(pos(2, 0) - pos(3, 0), 2) + pow(pos(2, 1) - pos(3, 1), 2),
+          pow(pos(3, 0) - pos(4, 0), 2) + pow(pos(3, 1) - pos(4, 1), 2);
+}
+void generate_Rg(Eigen::MatrixXd& Rg, const Eigen::VectorXd& pos) {
+    Rg << pos(0) - pos(1), pos(1) - pos(0), 0, 0, 0,
+          pos(0) - pos(2), 0, pos(2) - pos(0), 0, 0,
+          pos(0) - pos(3), 0, 0, pos(3) - pos(0), 0,
+          pos(0) - pos(4), 0, 0, 0, pos(4) - pos(0),
+          0, pos(1) - pos(2), pos(2) - pos(1), 0, 0, 
+          0, 0, pos(2) - pos(3), pos(3) - pos(2), 0,
+          0, 0, 0, pos(3) - pos(4), pos(4) - pos(3);
 }
