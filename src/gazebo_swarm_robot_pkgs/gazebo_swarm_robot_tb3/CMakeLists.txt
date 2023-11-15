@@ -46,6 +46,8 @@ add_executable(gazebo_swarm_robot_control_angle src/main_angle.cpp src/swarm_rob
 target_link_libraries(gazebo_swarm_robot_control_angle ${catkin_LIBRARIES})
 add_executable(gazebo_swarm_robot_control_line src/main_line.cpp src/swarm_robot_control.cpp include/swarm_robot_control.h)
 target_link_libraries(gazebo_swarm_robot_control_line ${catkin_LIBRARIES})
+add_executable(gazebo_swarm_robot_control_queue src/main_queue.cpp src/swarm_robot_control.cpp include/swarm_robot_control.h)
+target_link_libraries(gazebo_swarm_robot_control_queue ${catkin_LIBRARIES})
 
 add_executable(gazebo_stop_robot src/stop_robot.cpp src/swarm_robot_control.cpp include/swarm_robot_control.h)
 target_link_libraries(gazebo_stop_robot ${catkin_LIBRARIES})
