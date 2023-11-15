@@ -39,7 +39,7 @@ namespace config {
     double force_coef = 0.08;  // coefficient to replace G etc. in gravity formula
     double w_coef = 0.03;   // scale the impact of rejection on w
     
-    std::string expected_queue = "circle";
+    std::string expected_queue = "star";
 }
 
 
@@ -221,6 +221,11 @@ void generate_pos(const string& expected_queue, Eigen::MatrixXd& expected_pos) {
         return;
     }
     if (expected_queue == "star") {
+        expected_pos << 0, 0, 0,
+                        1.5, 0, 0,
+                        0, 1.5, 0,
+                        -1.5, 0, 0,
+                        0, -1.5, 0;
         return;
     }
     if (expected_queue == "wedge") {
