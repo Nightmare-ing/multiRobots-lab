@@ -13,7 +13,6 @@ using std::string;
 // Util functions
 void copy_to_matrix(std::vector<std::vector<double> >& vec, Eigen::MatrixXd& mat);
 bool all_converge(Eigen::VectorXd& vec);
-bool all_converge(Eigen::MatrixXd& mat);
 void generate_pos(const string& expected_queue, Eigen::MatrixXd& expected_pos);
 void generate_gd(Eigen::VectorXd& gd, const Eigen::MatrixXd& pos);
 void generate_Rg(Eigen::MatrixXd& Rg, const Eigen::VectorXd& pos);
@@ -39,7 +38,8 @@ namespace config {
     double force_coef = 0.08;  // coefficient to replace G etc. in gravity formula
     double w_coef = 0.03;   // scale the impact of rejection on w
     
-    std::string expected_queue = "wedge";
+    // desired queue shape, three choices, "circle", "star", "wedge"
+    std::string expected_queue = "circle";
 }
 
 
@@ -56,44 +56,24 @@ int main(int argc, char** argv) {
     /* Initialize swarm robot */
     SwarmRobot swarm_robot(&nh, swarm_robot_id);
 
-    /* Set L Matrix and the converge line */
-    Eigen::VectorXd line(2); // line function
-    line << 1, 1;
-    
+    /* set expected position for the specific queue*/
     Eigen::MatrixXd expected_pos(num_robots, 3);
     generate_pos(config::expected_queue, expected_pos);
     Eigen::VectorXd expected_gd(2 * num_robots - 3);
     generate_gd(expected_gd, expected_pos);
-    std::cout << expected_gd << std::endl;
-
-
-    Eigen::MatrixXd lap(num_robots, num_robots);
-    lap <<  4, -1, -1, -1, -1, 
-            -1, 4, -1, -1, -1,
-            -1, -1, 4, -1, -1,
-            -1, -1, -1, 4, -1,
-            -1, -1, -1, -1, 4;
-    // Eigen::MatrixXd lap1(num_robots, num_robots);
-    // lap <<  1, -1, 0, 0, 0,
-    //         -1, 3, -1, 0, -1,
-    //         0, -1, 3, -1, -1,
-    //         0, 0, -1, 2, -1,
-    //         0, -1, -1, -1, 3;
 
 
     /* Mobile robot poses and for next poses */
     Eigen::MatrixXd cur_pos(num_robots, 3);
-    Eigen::MatrixXd cur_vector(num_robots, 3);
-    Eigen::MatrixXd diff_vector(num_robots, 3);
     Eigen::VectorXd del_pos_x(num_robots);
     Eigen::VectorXd del_pos_y(num_robots);
-    Eigen::VectorXd del_theta(num_robots);
-    Eigen::VectorXd dist_factor(num_robots);
-    Eigen::VectorXd force_x(num_robots);
-    Eigen::VectorXd force_y(num_robots);
     Eigen::VectorXd cur_gd(2 * num_robots - 3);
     Eigen::MatrixXd R_g_x(2 * num_robots - 3, num_robots);
     Eigen::MatrixXd R_g_y(2 * num_robots - 3, num_robots);
+
+    Eigen::VectorXd dist_factor(num_robots);
+    Eigen::VectorXd force_x(num_robots);
+    Eigen::VectorXd force_y(num_robots);
 
 
     /* store position from camera */
@@ -109,17 +89,17 @@ int main(int argc, char** argv) {
         
         // copy robot positions to matrix for matrix operation
         copy_to_matrix(current_robot_pose, cur_pos);
+
+        // generate gd vector and Rg matrices
         generate_gd(cur_gd, cur_pos);
-        
         generate_Rg(R_g_x, cur_pos.col(0));
         generate_Rg(R_g_y, cur_pos.col(1));
-        std::cout << R_g_x << std::endl << R_g_y << std::endl;
 
-        /* Judge whether reached */
+        /* calculate derivation of position*/
         del_pos_x = R_g_x.transpose() * (expected_gd - cur_gd);
         del_pos_y = R_g_y.transpose() * (expected_gd - cur_gd);
-        std::cout << del_pos_x << std::endl << del_pos_y << std::endl;
         
+        /* Judge whether converged */
         bool x_conv = all_converge(del_pos_x);
         bool y_conv = all_converge(del_pos_y);
         is_conv = x_conv && y_conv;
@@ -154,8 +134,6 @@ int main(int argc, char** argv) {
             double vec = (del_pos_x(i) * std::cos(cur_pos(i, 2)) + del_pos_y(i) * std::sin(cur_pos(i, 2))) * config::k_v;
             double w =  (del_pos_x(i) * std::sin(cur_pos(i, 2)) + del_pos_y(i) * std::cos(cur_pos(i, 2)))* config::k_w;
 
-            std::cout << "vec: " << vec << std::endl << "w: " << w << std::endl;
-
             // add rejection effect on vec and w
             double del_vec = force_x(i) * std::cos(cur_pos(i, 2)) + force_y(i) * std::sin(cur_pos(i, 2));
             vec += del_vec;
@@ -168,7 +146,6 @@ int main(int argc, char** argv) {
             
             // add consistant connection affect
             vec /= dist_factor(i) * config::MIN_dist_coef;
-            // std::cout << "dist_factor(i): " << dist_factor(i) << std::endl << "vec: " << vec << std::endl;
             
             // addjust vec and w to appropriate range
             vec = swarm_robot.checkVel(vec, config::MAX_V, config::MIN_V);
