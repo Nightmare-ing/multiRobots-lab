@@ -19,3 +19,20 @@ To run simulation on your local machine, follow the steps
   - use the command `rosrun gazebo_swarm_robot_tb3 your_target`
 
 To stop your robot, run `rosrun gazebo_swarm_robot_tb3 gazebo_stop_robot`
+
+# Current progress
+
+Contorl robots to form queue, offered two methods
+
+- Based on the regidity of the graph, offered by @Smile, in master branch, for
+  more details, check the commits message
+
+- Based on the vector method, offered by @Sturmspatz, in
+  move\_to\_fix\_point\_queue.
+
+    - Designed by @Sturmspatz, optimized by @Smile and uploaded by @Smile.
+
+    - Robots can move to the given positions
+
+    - Also add some modifications to rejection effect, focus on optimizing 
+    the sign of angular velocity to rotate more efficiently
