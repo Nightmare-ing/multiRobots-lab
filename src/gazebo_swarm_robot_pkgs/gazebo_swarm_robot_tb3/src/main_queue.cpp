@@ -133,30 +133,16 @@ int main(int argc, char** argv) {
             double del_angle = (std::atan2(del_pos(i, 1), del_pos(i, 0)) - cur_pos(i, 2));
             
             // modify w to rotate in a more efficient direction
-            if (del_angle > M_PI) {
-                w = (del_angle - 2 * M_PI) * config::k_w;
-            } else if (del_angle < -M_PI) {
-                w = (del_angle + 2 * M_PI) * config::k_w;
-            } else {
-                w = del_angle * config::k_w;
-            }
+            w = (M_PI - std::abs(del_angle)) / std::abs(std::abs(del_angle) - M_PI) * del_angle;
 
             // add rejection effect on vec and w
-            double del_vec = force_x(i) * std::cos(cur_pos(i, 2)) + force_y(i) * std::sin(cur_pos(i, 2));
-            vec += del_vec;
+            vec += force_x(i) * std::cos(cur_pos(i, 2)) + force_y(i) * std::sin(cur_pos(i, 2));
             // if the rejection force is large, rotate much faster
-            double del_w = (std::atan2(force_y(i), force_x(i)) - cur_pos(i, 2)) * 
+            double rejection_del_w = (std::atan2(force_y(i), force_x(i)) - cur_pos(i, 2)) * 
                             sqrt(force_x(i)*force_x(i) + force_y(i)*force_y(i));
-            if (abs(del_w) < M_PI) {
-                del_w = del_w * config::w_coef * sqrt(force_x(i)* force_x(i) + force_y(i)* force_y(i));
-            } else {
-                del_w = -del_w * config::w_coef * sqrt(force_x(i) * force_x(i) + force_y(i) * force_y(i));
-            }
-            w += del_w;
-            
-            // print Info for debug
-            // std::cout << "num: " << i << std::endl << "vec: " << vec << std::endl << "w: " << w << std::endl;
-            // std::cout << "del_vec: " << del_vec << std::endl << "del_w: " << del_w << std::endl;
+            // modify w to rotate in a more efficient direction
+            rejection_del_w *= (M_PI - std::abs(rejection_del_w)) / std::abs(std::abs(rejection_del_w) - M_PI);
+            w += rejection_del_w;
             
             // add consistant connection affect
             vec /= dist_factor(i) * config::MIN_dist_coef;
