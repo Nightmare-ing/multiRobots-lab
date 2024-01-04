@@ -50,6 +50,12 @@ add_executable(gazebo_swarm_robot_control_queue src/main_queue.cpp src/swarm_rob
 target_link_libraries(gazebo_swarm_robot_control_queue ${catkin_LIBRARIES})
 add_executable(gazebo_swarm_robot_control_gruppe src/main_gruppe.cpp src/swarm_robot_control.cpp include/swarm_robot_control.h)
 target_link_libraries(gazebo_swarm_robot_control_gruppe ${catkin_LIBRARIES})
+add_executable(gazebo_swarm_robot_control_gruppe_6 src/main_gruppe_6.cpp src/swarm_robot_control.cpp include/swarm_robot_control.h)
+target_link_libraries(gazebo_swarm_robot_control_gruppe_6 ${catkin_LIBRARIES})
+add_executable(gazebo_swarm_robot_control_gruppe_6_switch src/main_gruppe_6_switch.cpp src/swarm_robot_control.cpp include/swarm_robot_control.h)
+target_link_libraries(gazebo_swarm_robot_control_gruppe_6_switch ${catkin_LIBRARIES})
+add_executable(gazebo_swarm_robot_control_gruppe_6_switch_2 src/main_gruppe_6_switch_2.cpp src/swarm_robot_control.cpp include/swarm_robot_control.h)
+target_link_libraries(gazebo_swarm_robot_control_gruppe_6_switch_2 ${catkin_LIBRARIES})
 
 add_executable(gazebo_stop_robot src/stop_robot.cpp src/swarm_robot_control.cpp include/swarm_robot_control.h)
 target_link_libraries(gazebo_stop_robot ${catkin_LIBRARIES})

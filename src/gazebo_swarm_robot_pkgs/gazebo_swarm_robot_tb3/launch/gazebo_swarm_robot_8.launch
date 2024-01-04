@@ -14,46 +14,46 @@
 
   <!-- Set Pose -->
 
-  <arg name="robot_1_x_pos" default="-1.0"/>
-  <arg name="robot_1_y_pos" default=" 0.0"/>
-  <arg name="robot_1_z_pos" default=" 0.0"/>
-  <arg name="robot_1_yaw"   default=" 1.57"/>
+  <arg name="robot_1_x_pos" default="-0.5"/> 
+  <arg name="robot_1_y_pos" default=" 0.0"/> 
+  <arg name="robot_1_z_pos" default=" 0.0"/> 
+  <arg name="robot_1_yaw"   default=" 0.0"/> 
 
-  <arg name="robot_2_x_pos" default=" 0.0"/>
-  <arg name="robot_2_y_pos" default="-1.0"/>
-  <arg name="robot_2_z_pos" default=" 0.0"/>
-  <arg name="robot_2_yaw"   default=" 1.57"/>
+  <arg name="robot_2_x_pos" default="-1.0"/> 
+  <arg name="robot_2_y_pos" default=" 0.0"/> 
+  <arg name="robot_2_z_pos" default=" 0.0"/> 
+  <arg name="robot_2_yaw"   default=" 0.0"/>
 
-  <arg name="robot_3_x_pos" default=" 1.0"/>
+  <arg name="robot_3_x_pos" default="-1.5"/>
   <arg name="robot_3_y_pos" default=" 0.0"/>
   <arg name="robot_3_z_pos" default=" 0.0"/>
   <arg name="robot_3_yaw"   default=" 0.0"/>
 
-
-  <arg name="robot_4_x_pos" default=" 0.0"/>
-  <arg name="robot_4_y_pos" default=" 1.0"/>
+  <arg name="robot_4_x_pos" default="-2.0"/>
+  <arg name="robot_4_y_pos" default=" 0.0"/>
   <arg name="robot_4_z_pos" default=" 0.0"/>
-  <arg name="robot_4_yaw"   default=" 1.57"/>
+  <arg name="robot_4_yaw"   default=" 0.0"/>
 
-  <arg name="robot_5_x_pos" default=" 0.0"/>
+  <arg name="robot_5_x_pos" default="-2.5"/>
   <arg name="robot_5_y_pos" default=" 0.0"/>
   <arg name="robot_5_z_pos" default=" 0.0"/>
   <arg name="robot_5_yaw"   default=" 0.0"/>
 
-  <arg name="robot_6_x_pos" default=" 0.5"/>
+  <arg name="robot_6_x_pos" default="-3.0"/>
   <arg name="robot_6_y_pos" default=" 0.0"/>
   <arg name="robot_6_z_pos" default=" 0.0"/>
   <arg name="robot_6_yaw"   default=" 0.0"/>
 
+	
   <arg name="robot_7_x_pos" default=" 0.0"/>
-  <arg name="robot_7_y_pos" default=" 0.5"/>
+  <arg name="robot_7_y_pos" default=" 1.0"/>
   <arg name="robot_7_z_pos" default=" 0.0"/>
-  <arg name="robot_7_yaw"   default=" 0.0"/>
+  <arg name="robot_7_yaw"   default="-1.57"/>
 
-  <arg name="robot_8_x_pos" default=" 0.5"/>
-  <arg name="robot_8_y_pos" default=" 0.5"/>
+  <arg name="robot_8_x_pos" default=" 0.0"/>
+  <arg name="robot_8_y_pos" default="-1.0"/>
   <arg name="robot_8_z_pos" default=" 0.0"/>
-  <arg name="robot_8_yaw"   default=" 0.0"/>
+  <arg name="robot_8_yaw"   default=" 1.57"/>
 
 
 
